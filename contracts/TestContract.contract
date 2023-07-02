@@ -1,0 +1,18 @@
+{
+  "UUID": "d9612745-9c34-470a-828c-d3d7b4e91464",
+  "DisplayName": "My Epic Test Contract!",
+  "MaximumProgress": 100,
+  "Objectives": [
+    {
+      "DisplayName": "Awesome Objective!",
+      "Events": [
+        {
+          "EventName": "shoot_pistol",
+          "Threshold": 1,
+          "Action": "add",
+          "Variable": 1
+        }
+      ]
+    }
+  ]
+}
