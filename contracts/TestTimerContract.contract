@@ -1,0 +1,20 @@
+{
+  "UUID": "8c3b3955-0b80-441b-8721-ff8618c1e9ca",
+  "DisplayName": "Test Timer Contract",
+  "MaximumProgress": 100,
+  "Objectives": [
+    {
+      "DisplayName": "Shoot a pistol three times in five seconds.",
+      "Award": 1,
+      "Events": [
+        {
+          "EventName": "shoot_pistol",
+          "Threshold": 3,
+          "Action": "add",
+          "Variable": 1,
+          "Time": 5
+        }
+      ]
+    }
+  ]
+}

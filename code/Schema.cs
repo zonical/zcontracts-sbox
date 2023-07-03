@@ -58,7 +58,7 @@ public static partial class ContractManager
             if (Comp.Schema.UUID == ContractFile.UUID)
             {
                 Comp.Schema = ContractSchemas[ContractFile.UUID];
-                Comp.RefreshThresholdDicts();
+                Comp.RefreshDicts();
             }
         }
     }

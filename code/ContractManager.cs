@@ -22,7 +22,8 @@ public static partial class ContractManager
             return;
         }
         Comp.Schema = ContractSchemas[UUID];
-        Comp.RefreshThresholdDicts();
+        Comp.RefreshDicts();
+        Comp.Progress = 0;
 
         Log.Info($"Set {Client.Name} contract to \"{UUID}\"!");
     }
@@ -42,6 +43,4 @@ public static partial class ContractManager
 
         Comp.TriggerEvent(IncomingEvent, value);
     }
-
-
 }

@@ -18,13 +18,24 @@ public struct EventData
     [Property]
     [Description("Number thats used with the action.")]
     public int Variable { get; set; }
+
+    [Property]
+    [Category("Timer")]
+    [Description("The length of the timer.")]
+    public float Time { get; set; }
 }
 
 public struct ObjectiveData
 {
     [Property]
+    [Category("Basic Information")]
     [Description("Display name of the Objective.")]
     public string DisplayName { get; set; }
+
+    [Property]
+    [Category("Basic Information")]
+    [Description("The award thats added to the progress when an event is triggered.")]
+    public int Award { get; set; }
 
     [Property]
     [Category("Events")]

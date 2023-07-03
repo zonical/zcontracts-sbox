@@ -5,12 +5,12 @@
   "Objectives": [
     {
       "DisplayName": "Awesome Objective!",
+      "Award": 1,
       "Events": [
         {
           "EventName": "shoot_pistol",
           "Threshold": 1,
-          "Action": "add",
-          "Variable": 1
+          "Action": "add"
         }
       ]
     }
