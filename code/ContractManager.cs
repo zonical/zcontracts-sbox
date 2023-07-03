@@ -22,11 +22,33 @@ public static partial class ContractManager
             return;
         }
         Comp.Schema = ContractSchemas[UUID];
+        Comp.Threshold.Clear();
+        Comp.Timer.Clear();
+        Comp.Uses.Clear();
         Comp.RefreshDicts();
         Comp.Progress = 0;
 
         Log.Info($"Set {Client.Name} contract to \"{UUID}\"!");
     }
+
+    [ConCmd.Server("remove_contract")]
+    public static void RemoveContract()
+    {
+        var Client = ConsoleSystem.Caller;
+        // TODO: We should probably make this just a Get() since we don't want to
+        // force pawns to use ZContracts.
+        var Comp = Client.Pawn.Components.Get<ActiveContract>();
+        if (Comp == null) return;
+
+        Comp.Schema = null;
+        Comp.Threshold.Clear();
+        Comp.Timer.Clear();
+        Comp.Uses.Clear();
+        Comp.Progress = 0;
+
+        return;
+    }
+
 
     // When an event is triggered, process logic.
     [ContractEvents.TriggerEvent]

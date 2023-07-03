@@ -87,10 +87,6 @@ public partial class ActiveContract : EntityComponent
     {
         // TODO: I'm getting NetworkTable messages related to these dicts.
         // Is that an issue or should I just ignore it?
-        Threshold.Clear();
-        Timer.Clear();
-        Uses.Clear();
-
         for (int ObjectiveID = 0; ObjectiveID < Schema.Objectives.Count; ObjectiveID++)
         {
             var ThreshData = new ThresholdData();
