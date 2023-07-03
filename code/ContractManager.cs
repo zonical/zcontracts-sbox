@@ -37,7 +37,11 @@ public static partial class ContractManager
         if (Client == null) return;
 
         var Comp = Client.Pawn.Components.Get<ActiveContract>();
-        if (Comp == null) return;
+        if (Comp == null)
+        {
+            Log.Warning($"Tried to fire ZContracts Event \"{IncomingEvent}\" for {Client.Name} but no ActiveContract component exists!");
+            return;
+        }
         if (Comp.Schema == null) return;
         if (Comp.Completed()) return;
 

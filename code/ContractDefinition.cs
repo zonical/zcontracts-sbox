@@ -38,6 +38,11 @@ public struct ObjectiveData
     public int Award { get; set; }
 
     [Property]
+    [Category("Basic Information")]
+    [Description("How many times this Objective can be completed. If set to zero, the Objective can be completed an infinite amount of times.")]
+    public int Uses { get; set; }
+
+    [Property]
     [Category("Events")]
     [Description("The display name of the Objective.")]
     public List<EventData> Events { get; set; }

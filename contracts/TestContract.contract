@@ -4,11 +4,23 @@
   "MaximumProgress": 100,
   "Objectives": [
     {
-      "DisplayName": "Awesome Objective!",
+      "DisplayName": "Shoot a gun!",
       "Award": 1,
       "Events": [
         {
           "EventName": "shoot_pistol",
+          "Threshold": 1,
+          "Action": "add"
+        }
+      ]
+    },
+    {
+      "DisplayName": "Jump up and down!",
+      "Award": 1,
+      "Uses": 10,
+      "Events": [
+        {
+          "EventName": "player_jump",
           "Threshold": 1,
           "Action": "add"
         }

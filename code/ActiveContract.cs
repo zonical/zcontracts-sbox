@@ -46,13 +46,18 @@ public partial class ActiveContract : EntityComponent
     /// a named event needs to be fired before an event is triggered. The maximum threshold is
     /// stored in Schema.
     /// </summary>
-
     [Net] public IDictionary<int, ThresholdData> Threshold { get; set; }
     /// <summary>
     /// Each event can have a timer associated with it. The timer represents how long a player has
     /// to reach the event threshold before it's reset.
     /// </summary>
     [Net] public IDictionary<int, TimerData> Timer { get; set; }
+    /// <summary>
+    /// Each Objective can specify how many times it can be completed (see ContractDefinition.Uses).
+    /// This is separate from Event thresholds where that tracks how many times a game-event
+    /// (e.g killing a player) has been fired.
+    /// </summary>
+    [Net] public IDictionary<int, int> Uses { get; set; }
 
     /// <summary>
     /// The definition file for the active Contract.
@@ -68,14 +73,24 @@ public partial class ActiveContract : EntityComponent
         return Progress >= Schema.MaximumProgress;
     }
 
+    public ActiveContract()
+    {
+        Threshold = new Dictionary<int, ThresholdData>();
+        Timer = new Dictionary<int, TimerData>();
+        Uses = new Dictionary<int, int>();
+    }
+
     /// <summary>
     /// Refreshes the dictionaries responsible for timers and thresholds.
     /// </summary>
     public void RefreshDicts()
     {
-        // TODO: Is this smart design?
-        Threshold = new Dictionary<int, ThresholdData>();
-        Timer = new Dictionary<int, TimerData>();
+        // TODO: I'm getting NetworkTable messages related to these dicts.
+        // Is that an issue or should I just ignore it?
+        Threshold.Clear();
+        Timer.Clear();
+        Uses.Clear();
+
         for (int ObjectiveID = 0; ObjectiveID < Schema.Objectives.Count; ObjectiveID++)
         {
             var ThreshData = new ThresholdData();
@@ -87,17 +102,23 @@ public partial class ActiveContract : EntityComponent
                 {
                     ThreshDict[Event.EventName] = 0;
                 }
-                var TimeDict = TimeData.Values;
-                if (!TimeData.Values.ContainsKey(Event.EventName))
+
+                if (Event.Time > 0)
                 {
-                    var Struct = new TimerStruct();
-                    Struct.TimeRemaining = 0.0f;
-                    Struct.TimeStarted = 0.0f;
-                    TimeDict[Event.EventName] = Struct;
+                    var TimeDict = TimeData.Values;
+                    if (!TimeData.Values.ContainsKey(Event.EventName))
+                    {
+                        var Struct = new TimerStruct();
+                        Struct.TimeRemaining = 0.0f;
+                        Struct.TimeStarted = 0.0f;
+                        TimeDict[Event.EventName] = Struct;
+                    }
                 }
             }
+
             Threshold.Add(ObjectiveID, ThreshData);
-            Timer.Add(ObjectiveID, TimeData);
+            if (TimeData.Values.Count > 0) Timer.Add(ObjectiveID, TimeData);
+            Uses.Add(ObjectiveID, 0);
         }
     }
 
@@ -111,32 +132,43 @@ public partial class ActiveContract : EntityComponent
         for (int ObjectiveID = 0; ObjectiveID < Schema.Objectives.Count; ObjectiveID++)
         {
             var Objective = Schema.Objectives[ObjectiveID];
+
+            // Have we already hit our maximum amount of uses?
+            if (Objective.Uses > 0 && Uses[ObjectiveID] >= Objective.Uses) return;
+
             foreach (var Event in Objective.Events)
             {
                 if (Event.EventName == IncomingEvent)
                 {
-                    var ObjectiveTimerData = Timer[ObjectiveID].Values;
                     // If this Event should have a timer, start one!
-                    if (Event.Time > 0 && ObjectiveTimerData[Event.EventName].TimeRemaining == 0.0f)
+                    if (Event.Time > 0 && Timer.ContainsKey(ObjectiveID))
                     {
-                        var Struct = ObjectiveTimerData[Event.EventName];
-                        Struct.TimeStarted = Time.Now;
-                        Struct.TimeRemaining = Event.Time;
-                        ObjectiveTimerData[Event.EventName] = Struct;
+                        var ObjectiveTimerData = Timer[ObjectiveID].Values;
+                        if (ObjectiveTimerData[Event.EventName].TimeRemaining == 0.0f)
+                        {
+                            var Struct = ObjectiveTimerData[Event.EventName];
+                            Struct.TimeStarted = Time.Now;
+                            Struct.TimeRemaining = Event.Time;
+                            ObjectiveTimerData[Event.EventName] = Struct;
+                        }
                     }
 
-                    var ObjectiveThresholdData = Threshold[ObjectiveID].Values;
                     // Process threshold logic.
+                    var ObjectiveThresholdData = Threshold[ObjectiveID].Values;
                     ObjectiveThresholdData[Event.EventName] += value;
                     if (ObjectiveThresholdData[Event.EventName] >= Event.Threshold)
                     {
                         // Cancel our timer if we have one going!
-                        if (ObjectiveTimerData[Event.EventName].TimeRemaining != 0.0f)
+                        if (Event.Time > 0 && Timer.ContainsKey(ObjectiveID))
                         {
-                            var Struct = ObjectiveTimerData[Event.EventName];
-                            Struct.TimeStarted = 0.0f;
-                            Struct.TimeRemaining = 0.0f;
-                            ObjectiveTimerData[Event.EventName] = Struct;
+                            var ObjectiveTimerData = Timer[ObjectiveID].Values;
+                            if (ObjectiveTimerData[Event.EventName].TimeRemaining != 0.0f)
+                            {
+                                var Struct = ObjectiveTimerData[Event.EventName];
+                                Struct.TimeStarted = 0.0f;
+                                Struct.TimeRemaining = 0.0f;
+                                ObjectiveTimerData[Event.EventName] = Struct;
+                            }
                         }
 
                         if (Event.Action == Action_AddProgress) Progress += Objective.Award;
@@ -144,6 +176,12 @@ public partial class ActiveContract : EntityComponent
                         else if (Event.Action == Action_ResetProgress) Progress = 0;
 
                         ObjectiveThresholdData[Event.EventName] = 0;
+
+                        if (Objective.Uses > 0)
+                        {
+                            Uses[ObjectiveID]++;
+                            Uses[ObjectiveID] = Math.Clamp(Uses[ObjectiveID]++, 0, Objective.Uses);
+                        }
                     }
                 }
             }
@@ -165,6 +203,7 @@ public partial class ActiveContract : EntityComponent
         // We've got to wait for these dicts to be constructed first!
         if (Threshold == null) return;
         if (Timer == null) return;
+        if (Uses == null) return;
 
         // Temporary debug drawing.
         if (Game.IsClient && DebugEnabled)
@@ -178,18 +217,24 @@ public partial class ActiveContract : EntityComponent
                 var Objective = Schema.Objectives[ObjectiveID];
                 DebugOverlay.ScreenText($"  Objective {ObjectiveID}: \"{Objective.DisplayName}\"", DebugLine, 0.1f); DebugLine++;
                 DebugOverlay.ScreenText($"  Award: {Objective.Award}", DebugLine, 0.1f); DebugLine++;
+                DebugOverlay.ScreenText($"  Uses: {Uses[ObjectiveID]}/{Objective.Uses} (is infinite: {(Objective.Uses == 0).ToString()})", DebugLine, 0.1f); DebugLine++;
                 DebugOverlay.ScreenText($"  ========== EVENTS (total {Objective.Events.Count}) ==========", DebugLine, 0.1f); DebugLine++;
                 foreach (var Event in Objective.Events)
                 {
-                    var ObjectiveTimerData = Timer[ObjectiveID].Values;
                     var ObjectiveThresholdData = Threshold[ObjectiveID].Values;
                     DebugOverlay.ScreenText($"      Event Name: \"{Event.EventName}\"", DebugLine, 0.1f); DebugLine++;
                     DebugOverlay.ScreenText($"      Event Threshold: {ObjectiveThresholdData[Event.EventName]}/{Event.Threshold}", DebugLine, 0.1f); DebugLine++;
                     DebugOverlay.ScreenText($"      Event Action: \"{Event.Action}\"", DebugLine, 0.1f); DebugLine++;
                     DebugOverlay.ScreenText($"      Event Variable: {Event.Variable}", DebugLine, 0.1f); DebugLine++;
-                    DebugOverlay.ScreenText($"      Event Timer: {ObjectiveTimerData[Event.EventName].TimeRemaining}/{Event.Time}", DebugLine, 0.1f); DebugLine++;
+                    if (Event.Time > 0 && Timer.ContainsKey(ObjectiveID))
+                    {
+                        var ObjectiveTimerData = Timer[ObjectiveID].Values;
+                        DebugOverlay.ScreenText($"      Event Timer: {ObjectiveTimerData[Event.EventName].TimeRemaining}/{Event.Time}", DebugLine, 0.1f); DebugLine++;
+                    }
+                    
                 }
                 DebugOverlay.ScreenText($"  ========== EVENTS END ==========", DebugLine, 0.1f); DebugLine++;
+                DebugOverlay.ScreenText($"  ================================", DebugLine, 0.1f); DebugLine++;
             }
             DebugOverlay.ScreenText($"========== OBJECTIVES END ==========", DebugLine, 0.1f); DebugLine++;
         }
@@ -199,6 +244,7 @@ public partial class ActiveContract : EntityComponent
         {
             for (int ObjectiveID = 0; ObjectiveID < Schema.Objectives.Count; ObjectiveID++)
             {
+                if (!Timer.ContainsKey(ObjectiveID)) return;
                 var Objective = Schema.Objectives[ObjectiveID];
                 foreach (var Event in Objective.Events)
                 {
