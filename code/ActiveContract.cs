@@ -82,7 +82,6 @@ public partial class ActiveContract : EntityComponent
             var TimeData = new TimerData();
             foreach (var Event in Schema.Objectives[ObjectiveID].Events)
             {
-                Log.Info(Event.EventName);
                 var ThreshDict = ThreshData.Values;
                 if (!ThreshDict.ContainsKey(Event.EventName))
                 {
