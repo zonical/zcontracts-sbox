@@ -1,0 +1,31 @@
+{
+  "Title": "zcontracts",
+  "Type": "library",
+  "Org": "zonical",
+  "Ident": "zcontracts",
+  "Tags": null,
+  "Schema": 1,
+  "HasAssets": true,
+  "AssetsPath": "",
+  "Resources": null,
+  "MenuResources": null,
+  "HasCode": true,
+  "CodePath": "code/",
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "Metadata": {
+    "ProjectTemplate": null,
+    "CsProjName": "",
+    "Compiler": {
+      "RootNamespace": "Sandbox",
+      "DefineConstants": "SANDBOX;ADDON;DEBUG",
+      "NoWarn": "1701;1702;1591;",
+      "References": [],
+      "DistinctReferences": []
+    },
+    "Summary": "A code library to easily integrate contracts/missions into games and addons.",
+    "Description": "This project is based on a semi-active project of mine with the same name that aimed to recreate the TF2 Contracker system in SourceMod. Server operators will be able to create custom contracts/missions. I\u0027m aiming to have the code be plug-and-play with an entity component that handles the event logic and I will let games/addons define ways to select and save Contracts.",
+    "Public": false,
+    "ReplaceTags": "contracts missions objectives progression"
+  }
+}
